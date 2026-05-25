@@ -1,6 +1,0 @@
-Time Complexity: Avoid O(n^2) nested loops. Always use Hash Sets (O(1) lookup) or Dictionaries for duplicate finding or frequency counting.
-Naming Conventions: Strictly use snake_case for variables and functions. Use highly descriptive names (e.g., 'user_list' instead of 'ul' or 'a').
-List Comprehensions: Replace simple for-loops that append to a list with Pythonic list comprehensions to improve readability.
-Error Handling: Never use bare 'except:' blocks. Catch specific exceptions like ValueError or IndexError. Use defensive programming to validate inputs before processing.
-Imports: Remove unused imports. Group standard library imports at the top, followed by third-party imports.
-Type Hints: Always add Python type hints (e.g., def process(data: list) -> dict:) to function signatures.
