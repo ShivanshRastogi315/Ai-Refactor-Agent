@@ -1,0 +1,40 @@
+# ========================
+# P.R.I.S.M. Gitignore
+# ========================
+
+# 1. Dynamic Workspaces & Uploads
+workspace/*
+!workspace/.gitkeep
+uploads/
+temp/
+*.zip
+
+# 2. Python Caches & Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+chroma_db/
+
+# 3. Node.js & React Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+npm-debug.log*
+
+# 4. Celery & Redis Caches
+celerybeat-schedule
+celerybeat.pid
+*.log
+
+# 5. OS Generated Files
+.DS_Store
+Thumbs.db
+
+# 6. Environment Variables & Secrets
+.env
+.env.local

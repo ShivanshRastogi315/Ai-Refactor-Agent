@@ -1,0 +1,10 @@
+streamlit
+ollama
+chromadb
+sentence-transformers
+lizard
+fastapi
+uvicorn
+pylint
+requests
+docker
