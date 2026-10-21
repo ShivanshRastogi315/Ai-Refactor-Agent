@@ -1,3 +1,10 @@
+"""
+P.R.I.S.M. Celery Worker Module
+-------------------------------
+This module consumes asynchronous refactoring tasks from the Redis message broker.
+It orchestrates the interaction between the static analyzer, the local LLM agent,
+and the Docker-based reflection loop for continuous quality assurance.
+"""
 import os
 from celery import Celery
 from backend.optimizer import reflection_loop
@@ -12,21 +19,44 @@ celery_app = Celery(
 
 @celery_app.task(name="process_legacy_file")
 def process_legacy_file_task(file_path: str, original_code: str, source_lang: str = "python", target_lang: str = "python"):
+    """
+    Asynchronously processes a single legacy source file through the AI refactoring pipeline.
+    
+    This task performs the following:
+    1. Analyzes the AST of the original code.
+    2. Injects strict O(n) algorithmic requirements into the prompt context.
+    3. For Python targets: Routes the code into an ephemeral Docker sandbox. If the LLM
+       hallucinates variables or generates logic errors (e.g., NameError in test cases), 
+       the sandbox catches the traceback and feeds it back to the LLM for a self-healing retry.
+    4. For non-Python targets: Bypasses the Python sandbox to prevent execution collisions.
+    5. Dynamically updates file extensions and cleans up legacy files.
+
+    Args:
+        file_path (str): The absolute path to the extracted legacy file.
+        original_code (str): The raw string content of the legacy file.
+        source_lang (str): The language of the original code (default: "python").
+        target_lang (str): The requested output language (default: "python").
+
+    Returns:
+        dict: A status dictionary containing the final saved file path and execution status.
+    """
     filename = os.path.basename(file_path)
     print(f"\n{'='*40}")
     print(f"🚀 [STARTING] {filename} ({source_lang.upper()} ──► {target_lang.upper()})")
     
     try:
-        # 1. Run actual static analysis on the file
+        # 1. Run actual static analysis on the file to map boundaries
         analysis_result = static_analyzer.analyze(original_code, source_lang)
         context = knowledge_base.retrieve(original_code)
         
-        # 2. Setup structural optimization prompts
+        # 2. Setup structural optimization prompts (Enforce algorithmic efficiency)
         strict_context = context + f"\n\nCRITICAL INSTRUCTION: You MUST translate this code from {source_lang.upper()} to {target_lang.upper()} and optimize its time and space complexity. Replace O(n^2) loops with O(n) implementations. Do not return the original code unchanged."
         
         # --- 3. DYNAMIC TARGET CHECKING BLOCK ---
         if target_lang.lower() == "python":
-            # Use full Docker reflection safety checks for Python compilations
+            # Use full Docker reflection safety checks for Python compilations.
+            # This isolates the AI's generated logic and dynamically catches hallucinated 
+            # tracebacks or logic bugs before finalizing the output.
             final_code, final_status, logs = reflection_loop(
                 original_code=original_code,
                 static_analysis_report=analysis_result.get("issues", "No issues."),
@@ -56,7 +86,7 @@ def process_legacy_file_task(file_path: str, original_code: str, source_lang: st
         print(f"🧠 [STATUS] {final_status}")
         
         if final_status == "Success":
-            # 4. Handle dynamic extension conversion
+            # 4. Handle dynamic extension conversion for polyglot refactoring
             base_path, _ = os.path.splitext(file_path)
             ext_mapping = {
                 "python": ".py", "go": ".go", "java": ".java", 
@@ -76,10 +106,12 @@ def process_legacy_file_task(file_path: str, original_code: str, source_lang: st
             return {"file": output_file_path, "status": final_status}
             
         else:
+            # If retries are exhausted (e.g., persistent test suite crash), abort safely
             print(f"⚠️ [ABORTED] {filename} failed logic generation path.")
             print(f"🔍 [TRACEBACK]:\n{logs[-2]}")
             return {"file": file_path, "status": final_status}
-                
+            
     except Exception as e:
+        # Failsafe for fatal systemic crashes (e.g., Redis broker disconnects)
         print(f"❌ [CRASH] Fatal error on {filename}: {str(e)}")
         return {"file": file_path, "status": f"Failed: {str(e)}"}
