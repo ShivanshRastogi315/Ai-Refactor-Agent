@@ -28,6 +28,15 @@ The system operates on a highly structured, 5-stage pipeline:
 4. **Sandboxed Verification (Docker)**: The newly generated code and the QA test suite are stitched together and mounted into an ephemeral `python:3.10-slim` Docker container. It is executed with strict memory constraints to prevent infinite loops.
 5. **The Reflection Retry**: If the Docker container exits with an error code, the agent is fed the `stderr` traceback and given up to three retries to reflect on its logical failure and output a corrected script.
 
+## Quality Assurance & Testing Strategy
+
+To ensure enterprise-grade stability and reliability, P.R.I.S.M. underwent rigorous functional, performance, and integration testing using industry-standard tools:
+
+- **Functional UI Testing (SnapTest / Selenium IDE):** Automated end-to-end browser testing was implemented to verify React component states, specifically validating hidden file upload mechanisms and asynchronous UI updates during batch processing.
+- **Load & Performance Testing (Apache JMeter):** The FastAPI gateway and Redis message broker were stress-tested with concurrent virtual users to ensure zero packet loss, high throughput, and low latency under heavy API request loads.
+- **Agile Defect Tracking (Jira):** Comprehensive test cases (TC-01 through TC-04) and integration bugs (e.g., Markdown backtick parsing failures from LLM outputs) were logged, tracked, and resolved using a standard Agile Scrum workflow on Jira boards.
+- **Continuous Integration (Docker QA Sandbox):** The core of the agent's stability relies on ephemeral Docker containers. By strictly isolating the execution environment, the system successfully catches hallucinations and Python `NameError` tracebacks *before* they reach the user, instantly triggering the autonomous reflection loop.
+
 ## Technologies Used
 
 ### Backend & Core Logic
@@ -56,43 +65,40 @@ The system operates on a highly structured, 5-stage pipeline:
    ```bash
    git clone [https://github.com/your-username/prism-refactor-agent.git](https://github.com/your-username/prism-refactor-agent.git)
    cd prism-refactor-agent
+Download the Local LLM:
 
-2. **Download the Local LLM:**
-      Bash
-      ollama pull qwen2.5-coder:7b
+Bash
+ollama pull qwen2.5-coder:7b
+Pull the Docker Sandbox Image:
 
+Bash
+docker pull python:3.10-slim
+Start the Microservices (Requires Three Terminals):
 
-3. **Pull the Docker Sandbox Image:**
-      Bash
-      docker pull python:3.10-slim
+Terminal 1 (Start the FastAPI Backend):
 
+Bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+Terminal 2 (Start the Celery Workers):
 
-4. **Start the Microservices (Requires Three Terminals):**
+Bash
+cd backend
+python -m celery -A worker worker --loglevel=info --pool=solo
+Terminal 3 (Start the React Frontend):
 
-    #Terminal 1 (Start the FastAPI Backend):
-      Bash
-      cd backend
-      pip install -r requirements.txt
-      uvicorn main:app --reload --port 8000
-
-   #Terminal 2 (Start the Celery Workers):
-      Bash
-      cd backend
-      python -m celery -A worker worker --loglevel=info --pool=solo
-
-   #Terminal 3 (Start the React Frontend):
-      Bash
-      cd frontend
-      npm install
-      npm run dev
-
-
-**Usage Guide (UI & Batch)**
-1. The Web UI (React + Monaco)
+Bash
+cd frontend
+npm install
+npm run dev
+Usage Guide (UI & Batch)
+The Web UI (React + Monaco)
 Navigate to http://localhost:5173. Paste your inefficient or broken legacy code into the editor, select the target translation language, and click Auto-Refactor File. Watch the live terminal console as the agent writes tests, executes the sandbox, and heals runtime errors.
 
-2. Repository Batch Processing
+Repository Batch Processing
 Click Upload .zip Repo to ingest entire legacy codebases. The FastAPI layer will extract the files, map the extensions, and distribute the refactoring workload across background Celery workers. The React UI will display a live progress bar, logging perfectly verified files to your workspace without blocking your local machine.
 
-Developed by Shivansh Rastogi 
+Developed by Shivansh Rastogi
+
 (B.Tech Artificial Intelligence and Machine Learning)
